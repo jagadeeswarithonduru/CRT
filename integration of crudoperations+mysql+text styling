@@ -1,0 +1,399 @@
+
+import javafx.application.Application;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+
+import java.sql.*;
+import java.util.*;
+
+public class javaeffect extends Application {
+
+    private final String jdbcURL = "jdbc:mysql://localhost:3306/jdb";
+    private final String dbUser = "root";
+    private final String dbPassword = "Junnu@968";
+
+    private TableView<ObservableList<String>> tableView = new TableView<>();
+    private ComboBox<String> tableComboBox = new ComboBox<>();
+    private TextArea logArea = new TextArea();
+
+    private TextField tableNameField = new TextField();
+    private VBox fieldsBox = new VBox(10);
+    private ArrayList<HBox> fieldRows = new ArrayList<>();
+
+    @Override
+    public void start(Stage primaryStage) {
+        TabPane tabPane = new TabPane();
+        tabPane.getTabs().addAll(
+                createTab("CRUD + MySQL", createCRUDPane()),
+                createTab("Text Styling", createStylePane()),
+                createTab("Table Designer", createDesignerPane())
+        );
+
+        primaryStage.setTitle("Integrated JavaFX Application");
+        primaryStage.setScene(new Scene(tabPane, 900, 600));
+        primaryStage.show();
+    }
+
+    private Tab createTab(String title, Pane content) {
+        Tab tab = new Tab(title);
+        tab.setContent(content);
+        tab.setClosable(false);
+        return tab;
+    }
+
+    // -------------------- CRUD UI ---------------------
+    private Pane createCRUDPane() {
+        tableComboBox.getItems().addAll("EMP", "DEPT", "BONUS", "SALGRADE", "FifthTable");
+        tableComboBox.setPromptText("Select Table");
+        tableComboBox.setOnAction(e -> loadTableData());
+
+        Button btnCreate = new Button("Create");
+        Button btnInsert = new Button("Insert");
+        Button btnDelete = new Button("Delete");
+        Button btnDrop = new Button("Drop");
+        Button btnUpdate = new Button("Update");
+
+        btnCreate.setOnAction(e -> createTable());
+        btnInsert.setOnAction(e -> insertIntoTable());
+        btnDelete.setOnAction(e -> deleteFromTable());
+        btnDrop.setOnAction(e -> dropTable());
+        btnUpdate.setOnAction(e -> updateTable());
+
+        HBox controls = new HBox(10, tableComboBox, btnCreate, btnInsert, btnDelete, btnDrop, btnUpdate);
+        controls.setPadding(new Insets(10));
+
+        VBox layout = new VBox(10, controls, tableView, new Label("Log:"), logArea);
+        layout.setPadding(new Insets(10));
+        return layout;
+    }
+
+    private void loadTableData() {
+        String table = tableComboBox.getValue();
+        if (table == null) return;
+
+        tableView.getItems().clear();
+        tableView.getColumns().clear();
+
+        try (Connection conn = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM " + table)) {
+
+            ResultSetMetaData meta = rs.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                final int colIndex = i;
+                TableColumn<ObservableList<String>, String> col = new TableColumn<>(meta.getColumnName(i));
+                col.setCellValueFactory(data -> new ReadOnlyStringWrapper(data.getValue().get(colIndex - 1)));
+                tableView.getColumns().add(col);
+            }
+
+            while (rs.next()) {
+                ObservableList<String> row = FXCollections.observableArrayList();
+                for (int i = 1; i <= columnCount; i++) {
+                    row.add(rs.getString(i));
+                }
+                tableView.getItems().add(row);
+            }
+
+            logArea.appendText("Loaded data from " + table + "\n");
+
+        } catch (SQLException ex) {
+            logArea.appendText("Error loading data: " + ex.getMessage() + "\n");
+        }
+    }
+
+    private void createTable() {
+        String table = tableComboBox.getValue();
+        if (table == null) {
+            logArea.appendText("Please select a table.\n");
+            return;
+        }
+
+        String sql = switch (table) {
+            case "EMP" -> """
+                    CREATE TABLE IF NOT EXISTS EMP (
+                        empno INT PRIMARY KEY,
+                        ename VARCHAR(30),
+                        job VARCHAR(30),
+                        mgr INT,
+                        hiredate DATE,
+                        sal FLOAT,
+                        comm FLOAT,
+                        deptno INT
+                    )""";
+            case "DEPT" -> """
+                    CREATE TABLE IF NOT EXISTS DEPT (
+                        dno INT PRIMARY KEY,
+                        dname VARCHAR(30),
+                        loc VARCHAR(30)
+                    )""";
+            case "BONUS" -> """
+                    CREATE TABLE IF NOT EXISTS BONUS (
+                        ename VARCHAR(30),
+                        job VARCHAR(30),
+                        sal FLOAT,
+                        comm FLOAT
+                    )""";
+            case "SALGRADE" -> """
+                    CREATE TABLE IF NOT EXISTS SALGRADE (
+                        grade INT,
+                        losal INT,
+                        hisal INT
+                    )""";
+            case "FifthTable" -> """
+                    CREATE TABLE IF NOT EXISTS FifthTable (
+                        sid INT PRIMARY KEY,
+                        sname VARCHAR(30),
+                        location VARCHAR(30)
+                    )""";
+            default -> null;
+        };
+
+        if (sql == null) return;
+
+        try (Connection conn = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+            logArea.appendText("Table " + table + " created.\n");
+        } catch (SQLException e) {
+            logArea.appendText("Create Error: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void insertIntoTable() {
+        String table = tableComboBox.getValue();
+        if (table == null) return;
+
+        try (Connection conn = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement stmt = conn.createStatement()) {
+
+            TextInputDialog dialog = new TextInputDialog();
+            String prompt;
+            String sql = null;
+
+            switch (table) {
+                case "EMP" -> {
+                    prompt = "Enter: empno ename job mgr hiredate sal comm deptno";
+                    dialog.setHeaderText(prompt);
+                    Optional<String> input = dialog.showAndWait();
+                    if (input.isEmpty()) return;
+                    String[] p = input.get().split("\\s+");
+                    if (p.length != 8) throw new IllegalArgumentException("Expected 8 fields");
+                    sql = "INSERT INTO EMP VALUES(" + p[0] + ", '" + p[1] + "', '" + p[2] + "', " + p[3] + ", '" + p[4] + "', " + p[5] + ", " + p[6] + ", " + p[7] + ")";
+                }
+                case "DEPT" -> {
+                    prompt = "Enter: dno dname loc";
+                    dialog.setHeaderText(prompt);
+                    Optional<String> input = dialog.showAndWait();
+                    if (input.isEmpty()) return;
+                    String[] p = input.get().split("\\s+");
+                    if (p.length != 3) throw new IllegalArgumentException("Expected 3 fields");
+                    sql = "INSERT INTO DEPT VALUES(" + p[0] + ", '" + p[1] + "', '" + p[2] + "')";
+                }
+            }
+
+            if (sql != null) {
+                stmt.executeUpdate(sql);
+                logArea.appendText("Inserted into " + table + "\n");
+                loadTableData();
+            }
+
+        } catch (Exception e) {
+            logArea.appendText("Insert Error: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void deleteFromTable() {
+        String table = tableComboBox.getValue();
+        if (table == null) return;
+
+        try (Connection conn = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement stmt = conn.createStatement()) {
+
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setHeaderText(table.equals("EMP") ? "Enter empno to delete" : "Enter dno to delete");
+
+            Optional<String> input = dialog.showAndWait();
+            if (input.isEmpty()) return;
+
+            int id = Integer.parseInt(input.get().trim());
+            String sql = (table.equals("EMP") ? "DELETE FROM EMP WHERE empno=" : "DELETE FROM DEPT WHERE dno=") + id;
+
+            int rows = stmt.executeUpdate(sql);
+            logArea.appendText("Deleted " + rows + " row(s) from " + table + "\n");
+            loadTableData();
+
+        } catch (Exception e) {
+            logArea.appendText("Delete Error: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void dropTable() {
+        String table = tableComboBox.getValue();
+        if (table == null) return;
+
+        try (Connection conn = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DROP TABLE " + table);
+            logArea.appendText("Dropped table: " + table + "\n");
+            tableView.getItems().clear();
+            tableView.getColumns().clear();
+        } catch (SQLException e) {
+            logArea.appendText("Drop Error: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void updateTable() {
+        String table = tableComboBox.getValue();
+        if (table == null) return;
+
+        try (Connection conn = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement stmt = conn.createStatement()) {
+
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setHeaderText("Enter UPDATE SQL (e.g., UPDATE EMP SET sal=5000 WHERE empno=1001)");
+            Optional<String> input = dialog.showAndWait();
+            if (input.isEmpty()) return;
+
+            stmt.executeUpdate(input.get());
+            logArea.appendText("Update executed on " + table + "\n");
+            loadTableData();
+
+        } catch (Exception e) {
+            logArea.appendText("Update Error: " + e.getMessage() + "\n");
+        }
+    }
+
+    // -------------------- Style Tab ---------------------
+    private Pane createStylePane() {
+        VBox vbox = new VBox(10);
+        vbox.setPadding(new Insets(20));
+
+        Text displayText = new Text("This is an example text.");
+        displayText.setFont(Font.font("Arial", 20));
+
+        CheckBox underlineCheck = new CheckBox("Underline");
+        CheckBox boldCheck = new CheckBox("Bold");
+        CheckBox italicCheck = new CheckBox("Italic");
+
+        underlineCheck.setOnAction(e -> displayText.setUnderline(underlineCheck.isSelected()));
+        boldCheck.setOnAction(e -> updateFontStyle(displayText, boldCheck, italicCheck));
+        italicCheck.setOnAction(e -> updateFontStyle(displayText, boldCheck, italicCheck));
+
+        VBox checkboxContainer = new VBox(5, underlineCheck, boldCheck, italicCheck);
+        for (int i = 1; i <= 20; i++) {
+            checkboxContainer.getChildren().add(new CheckBox("Option " + i));
+        }
+
+        ScrollPane scrollPane = new ScrollPane(checkboxContainer);
+        scrollPane.setPrefHeight(250);
+        scrollPane.setFitToWidth(true);
+
+        vbox.getChildren().addAll(displayText, new Label("Options:"), scrollPane);
+        return vbox;
+    }
+
+    private void updateFontStyle(Text text, CheckBox bold, CheckBox italic) {
+        String style = "-fx-font-size: 20;";
+        if (bold.isSelected()) style += " -fx-font-weight: bold;";
+        if (italic.isSelected()) style += " -fx-font-style: italic;";
+        text.setStyle(style);
+    }
+
+    // -------------------- Table Designer ---------------------
+    private Pane createDesignerPane() {
+        VBox layout = new VBox(15);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+
+        tableNameField.setPromptText("Enter table name");
+        fieldsBox.getChildren().clear();
+        fieldRows.clear();
+        addFieldRow();
+
+        Button addFieldButton = new Button("Add Field");
+        Button generateSQLButton = new Button("Generate SQL");
+
+        addFieldButton.setOnAction(e -> addFieldRow());
+        generateSQLButton.setOnAction(e -> {
+            String sql = generateSQL();
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Generated SQL");
+            alert.setHeaderText("CREATE TABLE Statement");
+            alert.setContentText(sql);
+            alert.showAndWait();
+        });
+
+        layout.getChildren().addAll(
+                new HBox(10, new Label("Table Name:"), tableNameField),
+                fieldsBox,
+                new HBox(10, addFieldButton, generateSQLButton)
+        );
+
+        return layout;
+    }
+
+    private void addFieldRow() {
+        TextField fieldName = new TextField();
+        fieldName.setPromptText("Field Name");
+
+        ComboBox<String> dataType = new ComboBox<>();
+        dataType.getItems().addAll("INT", "VARCHAR", "DATE", "BOOLEAN", "FLOAT");
+        dataType.setPromptText("Data Type");
+
+        TextField length = new TextField();
+        length.setPromptText("Length");
+
+        HBox row = new HBox(10, fieldName, dataType, length);
+        row.setAlignment(Pos.CENTER);
+        fieldRows.add(row);
+        fieldsBox.getChildren().add(row);
+    }
+
+    private String generateSQL() {
+        String tableName = tableNameField.getText().trim();
+        if (tableName.isEmpty()) return "Table name is required.";
+
+        StringBuilder sql = new StringBuilder("CREATE TABLE " + tableName + " (\n");
+
+        for (HBox row : fieldRows) {
+            TextField fieldName = (TextField) row.getChildren().get(0);
+            ComboBox<String> dataType = (ComboBox<String>) row.getChildren().get(1);
+            TextField length = (TextField) row.getChildren().get(2);
+
+            String name = fieldName.getText().trim();
+            String type = dataType.getValue();
+            String len = length.getText().trim();
+
+            if (name.isEmpty() || type == null) continue;
+
+            sql.append("    ").append(name).append(" ").append(type);
+            if (!len.isEmpty() && (type.equals("VARCHAR") || type.equals("FLOAT"))) {
+                sql.append("(").append(len).append(")");
+            }
+            sql.append(",\n");
+        }
+
+        if (sql.toString().endsWith(",\n")) {
+            sql.setLength(sql.length() - 2);
+            sql.append("\n");
+        }
+
+        sql.append(");");
+        return sql.toString();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
