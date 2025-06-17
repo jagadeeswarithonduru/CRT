@@ -1,0 +1,31 @@
+import java.lang.*;
+class MT extends Thread
+{
+	public void run()
+	{
+		for(int i=1;i<=5;i++)
+		{
+			System.out.println(this.getName()+"i="+i);
+			try
+			{
+				Thread.sleep(500);
+			}
+			catch(InterruptedException ie)
+			{
+				System.out.println("interupted exception"+ie);
+			}
+		}
+	}
+}
+class MTDemo
+{
+	public static void main(String args[])
+	{
+		MT t1=new MT();
+		MT t2=new MT();
+		t1.setName("T1:");
+		t2.setName("T2:");
+		t1.start();
+		t2.start();
+	}
+}
