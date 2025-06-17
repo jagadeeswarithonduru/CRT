@@ -1,0 +1,41 @@
+import java.io.*;
+import java.sql.*;
+import java.util.*;
+public class InsertFile{
+    public static void main(String[] args) {
+        String jdbcURL = "jdbc:mysql://localhost:3306/Jdb";
+        String dbUser = "root"; 
+        String dbPassword = "Junnu@968"; 
+        String filePath = "D:\\JAVA\\emp.txt"; 
+
+        try (Connection connection = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+             Statement statement = connection.createStatement()) {
+
+            System.out.println("Connected to MySQL Database.");
+
+            List<String> sqlCommands = readSQLFile(filePath);
+            for (String command : sqlCommands) {
+                if (!command.trim().isEmpty()) {
+                    statement.execute(command);
+                    System.out.println("Executed: " + command);
+                }
+            }
+
+            System.out.println("All SQL commands executed successfully.");
+
+        } catch (SQLException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static List<String> readSQLFile(String filePath) throws IOException {
+        StringBuilder contentBuilder = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                contentBuilder.append(line).append("\n");
+            }
+        }
+        return Arrays.asList(contentBuilder.toString().split(";"));
+    }
+}
