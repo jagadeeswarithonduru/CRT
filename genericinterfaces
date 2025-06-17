@@ -1,0 +1,58 @@
+import java.util.*;
+interface gi<T extends Comparable<T>>
+{
+	T max();
+	T min();
+}
+class gi1<T extends Comparable<T>>implements gi<T>
+{
+	T v[];
+	gi1(T a[])
+	{
+		v=a;
+	}
+	public T max()
+	{
+		T mx=v[0];
+		for(T i:v)
+		{
+			if(i.compareTo(mx)>0)
+				mx=i;
+		}
+		return mx;
+	}
+	public T min()
+	{
+		T mn=v[0];
+		for(T i:v)
+		{
+			if(i.compareTo(mn)<0)
+				mn=i;
+		}
+		return mn;
+	}
+}
+class Demo
+{
+	public static void main(String args[])
+	{
+		Scanner in=new Scanner(System.in);
+		System.out.println("enter array size:");
+		int n =in.nextInt();
+		Integer a[]=new Integer[n];
+		System.out.println("enter int array elements:");
+		for(int i=0;i<n;i++)
+		{
+			a[i]=in.nextInt();
+		}
+		gi<Integer> g1=new gi1<Integer>(a);
+		System.out.println("max element in the list is :"+g1.max());
+	    System.out.println("min element in the list is :"+g1.min());
+		Float f[]={2.3f,2.5f};
+		gi<Float> g2=new gi1<Float>(f);
+		System.out.println("max element in the list is :"+g2.max());
+	    System.out.println("min element in the list is :"+g2.min());
+		
+		
+	}
+}
