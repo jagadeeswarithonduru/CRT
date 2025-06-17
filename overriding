@@ -1,0 +1,40 @@
+import java.io.*;
+import java.lang.*;
+import java.util.*;
+class A
+{
+	int x;
+	A(int x)
+	{
+		this.x=x;
+	}
+	void show()
+	{
+		System.out.println("x value from class A="+x);
+	}
+}
+class B extends A
+{
+	int x;
+	B(int x,int y)
+	{
+		super(x);
+		x=x;
+	}
+	void show()
+	{
+		super.show();
+		System.out.println("x value of super class from sub class="+super.x);
+		System.out.println("x value of class B from sub class="+x);
+	}
+}
+class SuperDemo
+{
+	public static void main(String args[])
+	{
+		A a1=new A(10);
+		a1.show();
+		B b1=new B(10,20);
+		b1.show();
+	}
+}
