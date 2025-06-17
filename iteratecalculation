@@ -1,0 +1,64 @@
+import java.io.*;
+import java.util.Scanner;
+public class iteratecalculation
+{
+	public static void main(String args[])
+	{
+		Scanner sc=new Scanner(System.in);
+		try
+		{
+			System.out.println("enter the no.of digits u want to perform calculation");
+			int n=sc.nextInt();
+			char[] operator=new char[n-1];
+			int i;
+			System.out.println("enter first number");
+			double result=sc.nextDouble();
+			for(i=0;i<n-1;i++){
+				System.out.println("enter the operator");
+				operator[i]=sc.next().charAt(0);
+				System.out.println("enter next number");
+				double number=sc.nextDouble();
+				switch(operator[i])
+				{
+					case '+':
+					result+=number;
+					break;
+					case '-':
+					result-=number;
+					break;
+					case '*':
+					result*=number;
+					break;
+					case '/':
+					if(number==0)
+					{
+						System.out.println("error:arithmeticException");
+						return;
+					}
+					result/=number;
+					break;
+					case '%':
+					if(number==0)
+					{
+						System.out.println("error:division bye zero");
+						return;
+					}
+					result%=number;
+					break;
+					default:
+					System.out.println("enter valid operator");
+					return;
+				}
+				System.out.println("result"+result);
+			}
+			
+		}
+		catch(Exception e)
+		{
+			System.out.println(e.getMessage());
+		}
+		finally{
+			sc.close();
+		}
+	}
+}	
