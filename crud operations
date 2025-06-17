@@ -1,0 +1,262 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class crudoperations {
+    private static Connection connect() {
+        String url = "jdbc:mysql://localhost:3306/jdb";
+        String user = "root"; 
+        String password = "Junnu@968";
+        Connection conn = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection(url, user, password);
+        } catch (ClassNotFoundException e) {
+            System.out.println("MySQL JDBC Driver not found: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("Connection failed: " + e.getMessage());
+        }
+        return conn;
+    }
+
+    private static void createTable(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter table name: ");
+        String tableName = scanner.nextLine();
+        System.out.print("Enter columns (e.g., id INT PRIMARY KEY, name VARCHAR(100)): ");
+        String columns = scanner.nextLine();
+
+        String sql = "CREATE TABLE " + tableName + " (" + columns + ")";
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+            System.out.println("Table created successfully.");
+        } catch (SQLException e) {
+            System.out.println("Error creating table: " + e.getMessage());
+        }
+    }
+
+    private static void insertData(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            String catalog = conn.getCatalog();
+            ResultSet tables = meta.getTables(catalog, null, "%", new String[]{"TABLE"});
+            System.out.println("Available user tables:");
+            boolean foundTable = false;
+            while (tables.next()) {
+                String tableName = tables.getString("TABLE_NAME");
+                System.out.println(tableName);
+                foundTable = true;
+            }
+            if (!foundTable) {
+                System.out.println("No user tables found in the database.");
+                return;
+            }
+
+            System.out.print("Select table to insert data: ");
+            String tableName = scanner.nextLine();
+
+            boolean insertMore = true;
+            while (insertMore) {
+                System.out.print("Enter values (e.g., 1, 'John'): ");
+                String values = scanner.nextLine();
+
+                String sql = "INSERT INTO " + tableName + " VALUES (" + values + ")";
+                try (Statement stmt = conn.createStatement()) {
+                    int rowsAffected = stmt.executeUpdate(sql);
+                    System.out.println(rowsAffected + " row(s) inserted successfully.");
+                } catch (SQLException e) {
+                    System.out.println("Error inserting data: " + e.getMessage());
+                }
+
+                System.out.print("Do you want to insert another record? (yes/no): ");
+                String answer = scanner.nextLine();
+                if (!answer.equalsIgnoreCase("yes") && !answer.equalsIgnoreCase("y")) {
+                    insertMore = false;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error inserting data: " + e.getMessage());
+        }
+    }
+
+    private static void updateData(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Do you want to enter a full SQL UPDATE query? (yes/no): ");
+        String useFullQuery = scanner.nextLine();
+        String sql;
+        if (useFullQuery.equalsIgnoreCase("yes") || useFullQuery.equalsIgnoreCase("y")) {
+            System.out.print("Enter SQL update query: ");
+            sql = scanner.nextLine();
+        } else {
+            try {
+                DatabaseMetaData meta = conn.getMetaData();
+                String catalog = conn.getCatalog();
+                ResultSet tables = meta.getTables(catalog, null, "%", new String[]{"TABLE"});
+                System.out.println("Available user tables:");
+                while (tables.next()) {
+                    System.out.println(tables.getString("TABLE_NAME"));
+                }
+                System.out.print("Enter table name for update: ");
+                String tableName = scanner.nextLine();
+
+                System.out.println("Enter column=value pairs to update separated by commas.");
+                System.out.print("Set values: ");
+                String setClause = scanner.nextLine();
+
+                System.out.print("Condition (empty for no condition): ");
+                String condition = scanner.nextLine();
+
+                sql = "UPDATE " + tableName + " SET " + setClause;
+                if (!condition.trim().isEmpty()) {
+                    sql += " WHERE " + condition;
+                }
+            } catch (SQLException e) {
+                System.out.println("Error preparing update: " + e.getMessage());
+                return;
+            }
+        }
+
+        try (Statement stmt = conn.createStatement()) {
+            int rowsAffected = stmt.executeUpdate(sql);
+            System.out.println(rowsAffected + " row(s) updated successfully.");
+        } catch (SQLException e) {
+            System.out.println("Error executing update: " + e.getMessage());
+        }
+    }
+
+    private static void deleteData(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter SQL delete query: ");
+        String sql = scanner.nextLine();
+
+        try (Statement stmt = conn.createStatement()) {
+            int rowsAffected = stmt.executeUpdate(sql);
+            System.out.println(rowsAffected + " row(s) deleted successfully.");
+        } catch (SQLException e) {
+            System.out.println("Error deleting data: " + e.getMessage());
+        }
+    }
+
+    private static void selectData(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            String catalog = conn.getCatalog();
+            ResultSet tables = meta.getTables(catalog, null, "%", new String[]{"TABLE"});
+            System.out.println("Available user tables:");
+            while (tables.next()) {
+                System.out.println(tables.getString("TABLE_NAME"));
+            }
+
+            System.out.print("Enter table name to view: ");
+            String tableName = scanner.nextLine();
+
+            String sql = "SELECT * FROM " + tableName;
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+                ResultSetMetaData rsmd = rs.getMetaData();
+                int columnCount = rsmd.getColumnCount();
+
+                for (int i = 1; i <= columnCount; i++) {
+                    System.out.print(rsmd.getColumnName(i) + "\t");
+                }
+                System.out.println("\n------------------------------------------------------------");
+
+                while (rs.next()) {
+                    for (int i = 1; i <= columnCount; i++) {
+                        System.out.print(rs.getString(i) + "\t");
+                    }
+                    System.out.println();
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error selecting data: " + e.getMessage());
+        }
+    }
+
+    private static void dropTable(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            String catalog = conn.getCatalog();
+            ResultSet tables = meta.getTables(catalog, null, "%", new String[]{"TABLE"});
+            System.out.println("Available user tables:");
+            while (tables.next()) {
+                System.out.println(tables.getString("TABLE_NAME"));
+            }
+
+            System.out.print("Enter table name to drop: ");
+            String tableName = scanner.nextLine();
+
+            System.out.print("Are you sure you want to drop table '" + tableName + "'? (yes/no): ");
+            String confirm = scanner.nextLine();
+            if (!confirm.equalsIgnoreCase("yes")) {
+                System.out.println("Drop table cancelled.");
+                return;
+            }
+
+            String sql = "DROP TABLE " + tableName;
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(sql);
+                System.out.println("Table '" + tableName + "' dropped successfully.");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error dropping table: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        Connection conn = connect();
+        if (conn == null) return;
+
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("\nMenu:");
+            System.out.println("1. Create Table");
+            System.out.println("2. Insert Data");
+            System.out.println("3. Update Data");
+            System.out.println("4. Delete Data");
+            System.out.println("5. Select Data");
+            System.out.println("6. Exit");
+            System.out.println("7. Drop Table");
+            System.out.print("Select an option: ");
+            int choice = 0;
+            try {
+                choice = Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input, please enter a number.");
+                continue;
+            }
+
+            switch (choice) {
+                case 1:
+                    createTable(conn);
+                    break;
+                case 2:
+                    insertData(conn);
+                    break;
+                case 3:
+                    updateData(conn);
+                    break;
+                case 4:
+                    deleteData(conn);
+                    break;
+                case 5:
+                    selectData(conn);
+                    break;
+                case 6:
+                    try {
+                        conn.close();
+                    } catch (SQLException e) {
+                        System.out.println("Error closing connection: " + e.getMessage());
+                    }
+                    System.out.println("Exiting program.");
+                    System.exit(0);
+                case 7:
+                    dropTable(conn);
+                    break;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+}
