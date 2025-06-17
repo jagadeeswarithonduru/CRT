@@ -1,0 +1,40 @@
+import java.util.*;
+
+public class CollectionDemo {
+    public static void main(String[] args) {
+        List<String> arrayList = new ArrayList<>();
+        arrayList.add("Apple");
+        arrayList.add("Banana");
+        arrayList.add("Apple"); // duplicate
+        System.out.println("ArrayList: " + arrayList);
+
+        Set<String> hashSet = new HashSet<>();
+        hashSet.add("Cat");
+        hashSet.add("Dog");
+        hashSet.add("Cat"); // duplicate, will be ignored
+        System.out.println("HashSet: " + hashSet);
+
+        Map<Integer, String> hashMap = new HashMap<>();
+        hashMap.put(101, "John");
+        hashMap.put(102, "Alice");
+        hashMap.put(101, "Bob"); // overwrites "John"
+        System.out.println("HashMap: " + hashMap);
+
+        System.out.println("Value for key 101: " + hashMap.get(101));
+
+        System.out.println("\n--- ArrayList Iteration ---");
+        for (String fruit : arrayList) {
+            System.out.println(fruit);
+        }
+
+        System.out.println("\n--- HashSet Iteration ---");
+        for (String animal : hashSet) {
+            System.out.println(animal);
+        }
+
+        System.out.println("\n--- HashMap Iteration ---");
+        for (Map.Entry<Integer, String> entry : hashMap.entrySet()) {
+            System.out.println("ID: " + entry.getKey() + ", Name: " + entry.getValue());
+        }
+    }
+}
