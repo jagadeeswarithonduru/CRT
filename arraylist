@@ -1,0 +1,103 @@
+import java.util.*;
+
+public class ListEvenOdd {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        List<Integer> numbers = new ArrayList<>();
+        boolean exit = false;
+
+        while (!exit) {
+            System.out.println("\n===== Menu =====");
+            System.out.println("1. Insert number at index");
+            System.out.println("2. Delete number at index");
+            System.out.println("3. Display all numbers");
+            System.out.println("4. Show even and odd numbers");
+            System.out.println("5. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    insertAtIndex(numbers, sc);
+                    break;
+                case 2:
+                    deleteAtIndex(numbers, sc);
+                    break;
+                case 3:
+                    displayNumbers(numbers);
+                    break;
+                case 4:
+                    displayEvenOdd(numbers);
+                    break;
+                case 5:
+                    exit = true;
+                    System.out.println("Exiting... Thank you!");
+                    break;
+                default:
+                    System.out.println("Invalid choice! Please enter 1-5.");
+            }
+        }
+
+        sc.close();
+    }
+
+    public static void insertAtIndex(List<Integer> numbers, Scanner sc) {
+        System.out.print("Enter number to insert: ");
+        int value = sc.nextInt();
+        System.out.print("Enter index (0 to " + numbers.size() + "): ");
+        int index = sc.nextInt();
+
+        if (index >= 0 && index <= numbers.size()) {
+            numbers.add(index, value);
+            System.out.println("Number inserted.");
+        } else {
+            System.out.println("Invalid index.");
+        }
+    }
+
+    public static void deleteAtIndex(List<Integer> numbers, Scanner sc) {
+        if (numbers.isEmpty()) {
+            System.out.println("List is empty.");
+            return;
+        }
+
+        System.out.print("Enter index to delete (0 to " + (numbers.size() - 1) + "): ");
+        int index = sc.nextInt();
+
+        if (index >= 0 && index < numbers.size()) {
+            int removed = numbers.remove(index);
+            System.out.println("Removed number: " + removed);
+        } else {
+            System.out.println("Invalid index.");
+        }
+    }
+
+    public static void displayNumbers(List<Integer> numbers) {
+        if (numbers.isEmpty()) {
+            System.out.println("No numbers entered yet.");
+            return;
+        }
+        System.out.println("Numbers: " + numbers);
+    }
+
+    public static void displayEvenOdd(List<Integer> numbers) {
+        if (numbers.isEmpty()) {
+            System.out.println("No numbers to analyze.");
+            return;
+        }
+
+        List<Integer> even = new ArrayList<>();
+        List<Integer> odd = new ArrayList<>();
+
+        for (int num : numbers) {
+            if (num % 2 == 0) {
+                even.add(num);
+            } else {
+                odd.add(num);
+            }
+        }
+
+        System.out.println("Even numbers: " + even);
+        System.out.println("Odd numbers: " + odd);
+    }
+}
